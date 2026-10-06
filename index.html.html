@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Practical Files - Python, MySQL & Flask</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; color: #222; }
+header { background: #222; color: white; padding: 25px; text-align: center; }
+main { max-width: 1100px; margin: 25px auto; padding: 0 18px; }
+section { background: white; margin: 20px 0; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px #ccc; }
+h2 { color: #333; }
+h3 { color: #555; margin-top: 25px; }
+pre { background: #f0f0f0; padding: 15px; overflow-x: auto; border-radius: 8px; line-height: 1.45; }
+.note { background: #fff4cc; padding: 12px; border-left: 5px solid #e0b400; border-radius: 5px; }
+</style>
+</head>
+<body>
+<header>
+<h1>Practical Files</h1>
+<p>Python / Pandas / Matplotlib / MySQL / Flask</p>
+</header>
+<main>
+
+<section>
+<h2>Practical 1 — Pandas, Visualization & Scaling</h2>
+
+<pre>import pandas as pd
+df = pd.read_csv('/content/netflix_dataset.csv')
+df
+df.head()
+df.tail()
+df.describe()
+df.info()
+df.isnull().sum()
+df.shape</pre>
+
+<h3>PIE CHART</h3>
+<pre>import matplotlib.pyplot as plt
+type_counts = df['type'].value_counts()
+plt.figure(figsize=(5, 5))
+plt.pie(type_counts, labels=type_counts.index, autopct='%1.1f%%',
+        colors=['skyblue', 'lightcoral'])
+plt.title('Distribution of Movies vs. TV Shows')
+plt.show()</pre>
+
+<h3>BAR PLOT</h3>
+<pre>genre_counts = df['genre'].value_counts()
+plt.figure(figsize=(8, 4))
+genre_counts.plot(kind='bar', color='skyblue')
+plt.title('Distribution of Genres')
+plt.xlabel('Genre')
+plt.ylabel('Number of Titles')
+plt.xticks(rotation=10)
+plt.show()</pre>
+
+<h3>HISTOGRAM</h3>
+<pre>plt.figure(figsize=(8, 4))
+plt.hist(df['rating'], bins=10, color='lightgreen', edgecolor='black')
+plt.title('Distribution of Ratings')
+plt.xlabel('Rating')
+plt.ylabel('Frequency')
+plt.show()</pre>
+
+<h3>LINE PLOT</h3>
+<pre>views_by_year = df.groupby('release_year')['views_millions'].sum().sort_index()
+plt.figure(figsize=(8, 4))
+views_by_year.plot(kind='line', marker='o', color='purple')
+plt.title('Total Views in Millions per Release Year')
+plt.xlabel('Release Year')
+plt.ylabel('Total Views (Millions)')
+plt.show()</pre>
+
+<h3>SCATTER PLOT</h3>
+<pre>plt.figure(figsize=(8, 4))
+plt.scatter(df['duration_min'], df['rating'], color='teal')
+plt.title('Scatter Plot of Duration vs. Rating')
+plt.xlabel('Duration (minutes)')
+plt.ylabel('Rating')
+plt.show()</pre>
+
+<h3>BOX PLOT</h3>
+<pre>plt.figure(figsize=(5, 4))
+plt.boxplot(df['views_millions'])
+plt.title('Box Plot of Views in Millions')
+plt.ylabel('Views (Millions)')
+plt.xticks([])
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()</pre>
+
+<h3>BOX PLOT (INTERACTIVE)</h3>
+<pre>import plotly.express as px
+df = px.data.tips()
+fig = px.box(df, x="total_bill", points="all")
+fig.show()</pre>
+
+<h3>MIN-MAX SCALING</h3>
+<pre>from sklearn.preprocessing import MinMaxScaler
+import pandas as pd
+
+# Reload the original DataFrame to ensure correct columns are available
+df = pd.read_csv('/content/netflix_dataset.csv')
+
+scaled = ['views_millions', 'duration_min', 'rating']
+scaler = MinMaxScaler()
+df_scaled_data = scaler.fit_transform(df[scaled])
+df_scaled = pd.DataFrame(df_scaled_data, columns=scaled)
+print(df_scaled.head())</pre>
+
+<h3>MULTIPLE BOX PLOT</h3>
+<pre>plt.figure(figsize=(8, 6))
+plt.boxplot(df_scaled[['rating', 'duration_min', 'views_millions']])
+plt.title('Box Plot of Min-Max Scaled Rating, Duration, and Views')
+plt.ylabel('Scaled Value')
+plt.xticks([1, 2, 3], ['Rating', 'Duration (min)', 'Views (millions)'])
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()</pre>
+</section>
+
+<section>
+<h2>Practical 2 — MySQL</h2>
+<div class="note">Before using <code>import mysql.connector</code>, you may need to run:
+<code>pip install mysql-connector-python</code></div>
+
+<pre>import mysql.connector
+
+# Connect to MySQL
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="your_password"
+)
+cursor = conn.cursor()
+
+# Create Database
+cursor.execute("CREATE DATABASE IF NOT EXISTS mydatabase")
+cursor.execute("USE mydatabase")
+
+# Create Table
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS mytable (
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(100),
+category VARCHAR(100),
+value FLOAT,
+description VARCHAR(200)
+)
+""")
+print("Database and table created successfully!")
+
+# CREATE - Insert Data
+data = [
+("Item1", "Category1", 10.5, "Description 1"),
+("Item2", "Category2", 20.5, "Description 2"),
+("Item3", "Category3", 30.5, "Description 3")
+]
+
+cursor.executemany("""
+INSERT INTO mytable (name, category, value, description)
+VALUES (%s, %s, %s, %s)
+""", data)
+conn.commit()
+print("Data inserted successfully!")
+
+# READ - Fetch All Data
+cursor.execute("SELECT * FROM mytable")
+print("All Records:")
+for row in cursor.fetchall():
+    print(row)
+
+# UPDATE - Modify Data
+cursor.execute("""
+UPDATE mytable
+SET value = 40
+WHERE name = 'Item2'
+""")
+conn.commit()
+print("Data updated successfully!")
+
+# DELETE - Delete Data
+cursor.execute("""
+DELETE FROM mytable
+WHERE value > 30
+""")
+conn.commit()
+print("Data deleted successfully!")
+
+# Close Connection
+cursor.close()
+conn.close()
+print("MySQL connection closed!")</pre>
+</section>
+
+<section>
+<h2>Practical 3 — HTML with Flask</h2>
+
+<h3>Python file</h3>
+<pre>from flask import Flask, render_template
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello_world():
+    return render_template("hello.html")
+
+if __name__=="__main__":
+    app.run(debug=True)</pre>
+
+<h3>hello.html</h3>
+<p>For output with HTML, paste this file inside the <code>templates</code> folder.</p>
+<pre>&lt;!DOCTYPE html&gt;
+&lt;title&gt;Hello, World!&lt;/title&gt;
+&lt;h1&gt;YOUR_NAME&lt;/h1&gt;
+&lt;h1&gt;YOUR_ROLL NUMBER&lt;/h1&gt;</pre>
+
+<h3>Without HTML</h3>
+<pre>from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Hello, Flask!"
+
+if __name__ == "__main__":
+    app.run(debug=True)</pre>
+</section>
+
+<section>
+<h2>How to Create a Virtual Environment in VS Code</h2>
+<pre>Ctrl + Shift + P
+→ Create Environment
+→ Recommended Python Version
+
+Select the recommended Python version and create the environment.</pre>
+</section>
+
+</main>
+</body>
+</html>
